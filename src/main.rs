@@ -4,6 +4,7 @@ use bevy::prelude::*;
 struct Rectangle {
     speed: f32,
     slope: f32,
+    test: Vec2,
 }
 
 #[derive(Component)]
@@ -47,6 +48,7 @@ fn setup(mut commands: Commands) {
         .insert(Rectangle {
             speed: 5.0,
             slope: 0.0,
+            test: Vec2::new(0.0, 0.0),
         });
 }
 
@@ -65,6 +67,14 @@ fn mouse_click(
         match world_coords {
             Some(coords) => {
                 mouse_loc.point = coords;
+                let mlv = Vec2::new(mouse_loc.point.x, mouse_loc.point.y);
+                let tv = Vec2::new(transform.translation.x, transform.translation.y);
+                let z = mlv - tv;
+                let u = z.normalize();
+                let a = tv + 5.0 * u;
+                info!("new point = {:?}", a);
+                rectangle.test = a;
+
                 let slope = (mouse_loc.point.y - transform.translation.y)
                     / (mouse_loc.point.x - transform.translation.x);
                 rectangle.slope = slope;
@@ -98,25 +108,40 @@ fn get_world_cursor_position(
     }
 }
 
+fn calc_next_pos(click_loc: Vec2, current_loc: Vec3, speed: f32) -> Vec2 {
+    let origin_vec = current_loc.truncate();
+
+    let normalized_dif = (click_loc - origin_vec).normalize();
+    let point_add = speed * normalized_dif;
+
+    origin_vec + point_add
+}
+
 fn move_rectangle(mouse_loc: Res<MouseClickLoc>, mut query: Query<(&Rectangle, &mut Transform)>) {
     let (rectangle, mut transform) = query.single_mut();
 
     if transform.translation.x != mouse_loc.point.x || transform.translation.y != mouse_loc.point.y
     {
-        if mouse_loc.point.x > transform.translation.x {
-            transform.translation.x += rectangle.speed * rectangle.slope;
-        }
-
-        if mouse_loc.point.x < transform.translation.x {
-            transform.translation.x -= rectangle.speed * rectangle.slope;
-        }
-
-        if mouse_loc.point.y > transform.translation.y {
-            transform.translation.y += rectangle.speed * rectangle.slope;
-        }
-
-        if mouse_loc.point.y < transform.translation.y {
-            transform.translation.y -= rectangle.speed * rectangle.slope;
-        }
+        let next_pos = calc_next_pos(mouse_loc.point, transform.translation, rectangle.speed);
+        transform.translation = next_pos.extend(transform.translation.z);
+        // let xdif = rectangle.test.x - transform.translation.x;
+        // info!("xdiff {:?}", xdif);
+        // transform.translation.x += rectangle.test.x;
+        // transform.translation.y += rectangle.test.y;
+        // if mouse_loc.point.x > transform.translation.x {
+        //     transform.translation.x += rectangle.speed * rectangle.slope;
+        // }
+        //
+        // if mouse_loc.point.x < transform.translation.x {
+        //     transform.translation.x -= rectangle.speed * rectangle.slope;
+        // }
+        //
+        // if mouse_loc.point.y > transform.translation.y {
+        //     transform.translation.y += rectangle.speed * rectangle.slope;
+        // }
+        //
+        // if mouse_loc.point.y < transform.translation.y {
+        //     transform.translation.y -= rectangle.speed * rectangle.slope;
+        // }
     }
 }
